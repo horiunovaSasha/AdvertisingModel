@@ -1,31 +1,31 @@
 ﻿@page
 @model RegisterModel
-@{
+@*@{
     ViewData["Title"] = "Register";
-}
+}*@
 
 <h1>@ViewData["Title"]</h1>
 
 <form asp-route-returnUrl="@Model.ReturnUrl" method="post">
-    <h4>Create a new account.</h4>
+    <h4>Створити новий аккаунт</h4>
     <hr />
     <div asp-validation-summary="All" class="text-danger"></div>
     <div class="form-group">
-        <label asp-for="Input.Email"></label>
+        <label asp-for="Input.Email">Електронна пошта</label>
         <input asp-for="Input.Email" class="form-control" />
         <span asp-validation-for="Input.Email" class="text-danger"></span>
     </div>
     <div class="form-group">
-        <label asp-for="Input.Password"></label>
+        <label asp-for="Input.Password">Пароль</label>
         <input asp-for="Input.Password" class="form-control" />
         <span asp-validation-for="Input.Password" class="text-danger"></span>
     </div>
     <div class="form-group">
-        <label asp-for="Input.ConfirmPassword"></label>
+        <label asp-for="Input.ConfirmPassword">Підтвердити пароль</label>
         <input asp-for="Input.ConfirmPassword" class="form-control" />
         <span asp-validation-for="Input.ConfirmPassword" class="text-danger"></span>
     </div>
-    <button type="submit" class="btn btn-primary">Register</button>
+    <button type="submit" class="btn btn-primary">Зареєструватись</button>
 </form>
 
 @section Scripts {
