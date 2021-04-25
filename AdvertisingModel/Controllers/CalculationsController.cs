@@ -3,7 +3,8 @@ using org.mariuszgromada.math.mxparser;
 using System;
 using MathNet.Numerics.LinearAlgebra;
 using MathNet.Numerics.OdeSolvers;
-using System.Linq;
+using System.Text.RegularExpressions;
+using CustomExpression = MathNet.Symbolics.SymbolicExpression;
 
 namespace AdvertisingModel.Controllers
 {
@@ -11,15 +12,22 @@ namespace AdvertisingModel.Controllers
     [ApiController]
     public class CalculationsController : Controller
     {
+        private static string _userFunctionText = "4 * x * x / 3 - 2 * x - 7";
+        
+        public CalculationsController()
+        {
+        }
+
         //"2+(3-5)^2"
         [HttpGet]
-        [Route("ParseAndCalculate")]
-        public string ParseAndCalculate(string textForm)
+        [Route("ChangeUserFunction")]
+        public string ChangeUserFunction(string textForm)
         {
             try
             {
-                var result = new Expression(textForm).calculate();
-                return result.ToString();
+                _userFunctionText = textForm;
+
+                return _userFunctionText;
             }
             catch (Exception ex)
             {
@@ -27,40 +35,85 @@ namespace AdvertisingModel.Controllers
             }
         }
 
+
+
+       // q(t) = -2*x + 4x^2/3 - 7;
         [HttpGet()]
         [Route("Calculate")]
         public Vector<double>[] Calculate(int n)
         {
-            Vector<double> y0 = Vector<double>.Build.Dense(new[] { -7.0 / 4.0, 55.0 / 8.0 });
-            Func<double, Vector<double>, Vector<double>> der = DerivativeMaker();
+            int N = 100;
+            double r = 1.5;// R(0)
+            int t_first = 0;
+            int t_end = 1;
+            double p = 1000;//ціна за якою продаємо
+            double c = 678;//собівартість (за елекроенергію, ...)
+            double a = 2000; //виділяємо грошей на рекламу 
+            double k0 = 0.65;//k(t) - коефіцієнт "набридання" реклами
+            double k1 = 1.25;
 
-            Vector<double>[] res = RungeKutta.FourthOrder(y0, 0, 1, n, der);
+            Vector<double> variables = Vector<double>.Build.Dense(new[] { 0, r });
+            Func<double, Vector<double>, Vector<double>> der = DerivativeMaker(p, c, a, k0);
 
-            res.ToList().ForEach(x => Console.WriteLine($"{x.ToRowMatrix()}"));
+            Vector<double>[] res = RungeKutta.FourthOrder(variables, t_first, t_end, N, der);
 
+            double[] P = new double[N];
+            double[] R = new double[N];
+            int i = 0;
+
+            foreach (var x in res)
+            {
+                P[i] = x[0];
+                R[i] = x[1];
+                Console.WriteLine("P " + P[i] + "\t R " + R[i]);
+                i++;
+            }
+            double[] t = function_t(t_first, t_end, N);
+
+            var R0 = function_R0(p, c, k0, k1);
             return res;
         }
 
-
-            /*
-             x'(t)=x(t)+2y(t)+2t
-             y'(t)=3x(t)+2y(t)-4t
-             x(0)=-7/4, y(0)=55/8
-             x(0)=-1.75, y(0)=6.875
-
-            */
-
-        static Func<double, Vector<double>, Vector<double>> DerivativeMaker()
+        //runge kutta
+        static Func<double, Vector<double>, Vector<double>> DerivativeMaker(double p, double c, double a, double k0)
         {
             return (t, Z) =>
             {
                 double[] A = Z.ToArray();
-                double x = A[0];
-                double y = A[1];
+                double P = A[0];
+                double x = A[1];
+                
+                var userFunction = CustomExpression.Parse(_userFunctionText.Replace("x", x.ToString()));
 
-                return Vector<double>.Build.Dense(new[] { x + 2 * y + 2 * t, 3 * x + 2 * y - 4 * t });
-
+                return Vector<double>.Build.Dense(new[] { (p - c) * userFunction.ComplexNumberValue.Real - a,
+                                                         k0 * a - k0 * x + 1
+                                                        });
             };
+        }
+
+        //розбиття t
+        static double[] function_t(int t_first, int t_end, int n)
+        {
+            double[] t = new double[n];
+            t[0] = 0;
+            for (int i = 1; i < n; i++)
+            {
+                t[i] = t[i - 1] + (double)(t_end - t_first) / n;
+            }
+            return t;
+        }
+
+        static double function_R0(double p, double c, double k0, double k1)
+        {
+            var x = CustomExpression.Variable("x");
+            var userFunction = CustomExpression.Parse(_userFunctionText);
+
+            var derivative = userFunction.Differentiate(x);     //q'(x)
+
+            var equation = derivative - k1 / k0 * 1 / (p - c); //q'(x) - k1/k0*1/(p-c) = 0
+            var R0 = Convert.ToDouble(Regex.Matches((-equation[0] / equation[1]).ToString(), @"(\-)?\d+(\.\d+)?")[0].ToString());//find R from equation and then extract double
+
+            return R0;
         }
     }
 }

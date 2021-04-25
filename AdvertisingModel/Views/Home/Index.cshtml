@@ -4,6 +4,25 @@
 
 <!-- Animated -->
 <div class="animated fadeIn">
+    <button type="button" class="btn btn-info mb-1" data-toggle="modal" data-target="#mediumModal">
+        Змінити функцію q(t)
+    </button>
+    <div class="modal fade" id="mediumModal" tabindex="-1" role="dialog" aria-labelledby="mediumModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="mediumModalLabel">Змінити функцію q(t)</h5>
+                    <br/>
+                    <input class="col-12" type="text" placeholder="-2*x + 4x^2/3 - 7" id="funcionInput">
+                </div>
+             
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Скасувати</button>
+                    <button type="button" id="submitFunctionChange" class="btn btn-primary" >Застосувати зміни</button>
+                </div>
+            </div>
+        </div>
+    </div>
     <div class="row">
         <div class="col-12 widget">
             <div class="card">
@@ -14,90 +33,124 @@
             </div>
         </div>
     </div>
-  
+
 </div>
 <!-- .animated -->
 @section Scripts {
     <!--Local Stuff-->
     <script>
+        $ = jQuery;
         jQuery(document).ready(function ($) {
             "use strict";
 
         });
 
-        am4core.ready(function () {
+        function buildGraph() {
+            am4core.ready(function () {
+                // Themes begin
+                am4core.useTheme(am4themes_animated);
+                // Themes end
 
-            // Themes begin
-            am4core.useTheme(am4themes_animated);
-            // Themes end
+                var chart = am4core.create("chartdiv", am4charts.XYChart);
 
-            var chart = am4core.create("chartdiv", am4charts.XYChart);
+                $.ajax("/api/Calculations/Calculate?n=101")
+                    .done(function (response) {
+                        var data = [];
+                        $(response).each(function (index, elem) {
+                            var item = {
+                                "t": index * 0.01,
+                                "y1": elem[0],
+                                "y2": elem[1],
+                            };
 
-            $.ajax("/api/Calculations/Calculate?n=101")
-                .done(function (response) {
-                    var data = [];
-                    $(response).each(function (index, elem) {
-                        var item = {
-                            "t": index * 0.01,
-                            "y1": elem[0],
-                            "y2": elem[1],
-                        };
+                            if (index % 5 == 0)
+                                item.lineColor = chart.colors.next();
 
-                        if (index % 5 == 0)
-                            item.lineColor = chart.colors.next();
+                            data.push(item);
+                        });
 
-                        data.push(item);
+                        chart.data = data;
+                    })
+                    .fail(function response() {
+                        console.log(response);
                     });
 
-                    chart.data = data;
-                })
-                .fail(function response() {
-                    console.log(response);
-                });           
-
-            var categoryAxis = chart.xAxes.push(new am4charts.CategoryAxis());
-            categoryAxis.renderer.grid.template.location = 0;
-            categoryAxis.renderer.ticks.template.disabled = true;
-            categoryAxis.renderer.line.opacity = 0;
-            categoryAxis.renderer.grid.template.disabled = true;
-            categoryAxis.renderer.minGridDistance = 40;
-            categoryAxis.dataFields.category = "t";
-            categoryAxis.startLocation = 0.4;
-            categoryAxis.endLocation = 0.6;
+                var categoryAxis = chart.xAxes.push(new am4charts.CategoryAxis());
+                categoryAxis.renderer.grid.template.location = 0;
+                categoryAxis.renderer.ticks.template.disabled = true;
+                categoryAxis.renderer.line.opacity = 0;
+                categoryAxis.renderer.grid.template.disabled = true;
+                categoryAxis.renderer.minGridDistance = 40;
+                categoryAxis.dataFields.category = "t";
+                categoryAxis.startLocation = 0.4;
+                categoryAxis.endLocation = 0.6;
 
 
-            var valueAxis = chart.yAxes.push(new am4charts.ValueAxis());
-            valueAxis.tooltip.disabled = true;
-            valueAxis.renderer.line.opacity = 0;
-            valueAxis.renderer.ticks.template.disabled = true;
-            valueAxis.min = 0;
+                var valueAxis = chart.yAxes.push(new am4charts.ValueAxis());
+                valueAxis.tooltip.disabled = true;
+                valueAxis.renderer.line.opacity = 0;
+                valueAxis.renderer.ticks.template.disabled = true;
+                valueAxis.min = 0;
 
-            var lineSeries = chart.series.push(new am4charts.LineSeries());
-            lineSeries.dataFields.categoryX = "t";
-            lineSeries.dataFields.valueY = "y1";
-            lineSeries.tooltipText = "y1: {valueY.value}";
-            lineSeries.fillOpacity = 0.5;
-            lineSeries.strokeWidth = 3;
-            lineSeries.propertyFields.stroke = "lineColor";
-            lineSeries.propertyFields.fill = "lineColor";
+                var lineSeries = chart.series.push(new am4charts.LineSeries());
+                lineSeries.dataFields.categoryX = "t";
+                lineSeries.dataFields.valueY = "y1";
+                lineSeries.tooltipText = "y1: {valueY.value}";
+                lineSeries.fillOpacity = 0.5;
+                lineSeries.strokeWidth = 3;
+                lineSeries.propertyFields.stroke = "lineColor";
+                lineSeries.propertyFields.fill = "lineColor";
 
-            var lineSeries1 = chart.series.push(new am4charts.LineSeries());
-            lineSeries1.dataFields.categoryX = "t";
-            lineSeries1.dataFields.valueY = "y2";
-            lineSeries1.tooltipText = "y2: {valueY.value}";
-            lineSeries1.fillOpacity = 0.5;
-            lineSeries1.strokeWidth = 3;
-            lineSeries1.propertyFields.stroke = "lineColor";
-            lineSeries1.propertyFields.fill = "lineColor";
+                var lineSeries1 = chart.series.push(new am4charts.LineSeries());
+                lineSeries1.dataFields.categoryX = "t";
+                lineSeries1.dataFields.valueY = "y2";
+                lineSeries1.tooltipText = "y2: {valueY.value}";
+                lineSeries1.fillOpacity = 0.5;
+                lineSeries1.strokeWidth = 3;
+                lineSeries1.propertyFields.stroke = "lineColor";
+                lineSeries1.propertyFields.fill = "lineColor";
 
-            chart.cursor = new am4charts.XYCursor();
-            chart.cursor.behavior = "panX";
-            chart.cursor.lineX.opacity = 0;
-            chart.cursor.lineY.opacity = 0;
+                chart.cursor = new am4charts.XYCursor();
+                chart.cursor.behavior = "panX";
+                chart.cursor.lineX.opacity = 0;
+                chart.cursor.lineY.opacity = 0;
 
-            chart.scrollbarX = new am4core.Scrollbar();
-            chart.scrollbarX.parent = chart.bottomAxesContainer;
+                chart.scrollbarX = new am4core.Scrollbar();
+                chart.scrollbarX.parent = chart.bottomAxesContainer;
 
-        }); // end am4core.ready()
+            }); // end am4core.ready()
+        }
+
+        buildGraph();
+
+        $('#submitFunctionChange').on('click', function () {
+            //debugger;
+
+            $.ajax({
+                url: "/api/Calculations/ChangeUserFunction",
+                data: {
+                    textForm: $("#funcionInput").val(),
+                },
+                success: function (result) {
+                    $('#mediumModal').modal('hide');
+                    buildGraph();
+                }
+            });
+
+            /*
+            $.ajax({
+                url: "/api/Calculations/ChangeUserFunction",
+                data: {
+                    textForm: $("#funcionInput").val(),
+                },
+                dataType: 'json'
+            }).done(function (data) {
+                //debugger;
+                alert("I work");
+                $('#mediumModal').modal('hide');
+            });*/
+            //$('#mediumModal').modal('toggle');
+          //  $('#mediumModal').hide();
+        });
     </script>
 }
