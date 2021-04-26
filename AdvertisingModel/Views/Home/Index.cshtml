@@ -7,18 +7,49 @@
     <button type="button" class="btn btn-info mb-1" data-toggle="modal" data-target="#mediumModal">
         Змінити функцію q(t)
     </button>
+    <button type="button" class="btn btn-info mb-1 float-right" id="changeParams">
+       Застосувати нові параметри
+    </button>
+    <br/>
+    <div class="row">
+        <span class="col-2">
+            <b>r</b>
+            <input type="text" value="1.5" id="r_input">
+        </span>
+        <span class="col-2">
+            <b>p</b>
+            <input type="text" value="1000" id="p_input">
+        </span>
+        <span class="col-2">
+            <b>c</b>
+            <input type="text" value="678" id="c_input">
+        </span>
+        <span class="col-2">
+            <b>a</b>
+            <input type="text" value="2000" id="a_input">
+        </span>
+        <span class="col-2">
+            <b>k0</b>
+            <input type="text" value="0.65" id="k0_input">
+        </span>
+        <span class="col-2">
+            <b>k1</b>
+            <input type="text" value="1.25" id="k1_input">
+        </span>
+    </div>
+    <br />
     <div class="modal fade" id="mediumModal" tabindex="-1" role="dialog" aria-labelledby="mediumModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg" role="document">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="mediumModalLabel">Змінити функцію q(t)</h5>
-                    <br/>
-                    <input class="col-12" type="text" placeholder="-2*x + 4x^2/3 - 7" id="funcionInput">
+                    <br />
+                    <input class="col-12" type="text" value="-2*x + 4x^2/3 - 7" id="funcionInput">
                 </div>
-             
+
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Скасувати</button>
-                    <button type="button" id="submitFunctionChange" class="btn btn-primary" >Застосувати зміни</button>
+                    <button type="button" id="submitFunctionChange" class="btn btn-primary">Застосувати зміни</button>
                 </div>
             </div>
         </div>
@@ -53,27 +84,37 @@
 
                 var chart = am4core.create("chartdiv", am4charts.XYChart);
 
-                $.ajax("/api/Calculations/Calculate?n=101")
-                    .done(function (response) {
-                        var data = [];
-                        $(response).each(function (index, elem) {
-                            var item = {
-                                "t": index * 0.01,
-                                "y1": elem[0],
-                                "y2": elem[1],
-                            };
+                $.ajax({
+                    url: "/api/Calculations/Calculate",
+                    data: {
+                        r: $("#r_input").val(),
+                        p: $("#p_input").val(),
+                        c: $("#c_input").val(),
+                        a: $("#a_input").val(),
+                        k0: $("#k0_input").val(),
+                        k1: $("#k1_input").val(),
+                    }
+                })
+                .done(function (response) {
+                    var data = [];
+                    $(response).each(function (index, elem) {
+                        var item = {
+                            "t": index * 0.01,
+                            "y1": elem[0],
+                            "y2": elem[1],
+                        };
 
-                            if (index % 5 == 0)
-                                item.lineColor = chart.colors.next();
+                        if (index % 5 == 0)
+                            item.lineColor = chart.colors.next();
 
-                            data.push(item);
-                        });
-
-                        chart.data = data;
-                    })
-                    .fail(function response() {
-                        console.log(response);
+                        data.push(item);
                     });
+
+                    chart.data = data;
+                })
+                .fail(function response() {
+                    console.log(response);
+                });
 
                 var categoryAxis = chart.xAxes.push(new am4charts.CategoryAxis());
                 categoryAxis.renderer.grid.template.location = 0;
@@ -124,8 +165,6 @@
         buildGraph();
 
         $('#submitFunctionChange').on('click', function () {
-            //debugger;
-
             $.ajax({
                 url: "/api/Calculations/ChangeUserFunction",
                 data: {
@@ -136,21 +175,11 @@
                     buildGraph();
                 }
             });
-
-            /*
-            $.ajax({
-                url: "/api/Calculations/ChangeUserFunction",
-                data: {
-                    textForm: $("#funcionInput").val(),
-                },
-                dataType: 'json'
-            }).done(function (data) {
-                //debugger;
-                alert("I work");
-                $('#mediumModal').modal('hide');
-            });*/
-            //$('#mediumModal').modal('toggle');
-          //  $('#mediumModal').hide();
         });
+
+        $('#changeParams').on('click', function () {
+            buildGraph();
+        });
+
     </script>
 }

@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using org.mariuszgromada.math.mxparser;
 using System;
 using MathNet.Numerics.LinearAlgebra;
 using MathNet.Numerics.OdeSolvers;
@@ -14,10 +13,6 @@ namespace AdvertisingModel.Controllers
     {
         private static string _userFunctionText = "4 * x * x / 3 - 2 * x - 7";
         
-        public CalculationsController()
-        {
-        }
-
         //"2+(3-5)^2"
         [HttpGet]
         [Route("ChangeUserFunction")]
@@ -40,17 +35,11 @@ namespace AdvertisingModel.Controllers
        // q(t) = -2*x + 4x^2/3 - 7;
         [HttpGet()]
         [Route("Calculate")]
-        public Vector<double>[] Calculate(int n)
+        public Vector<double>[] Calculate(double r = 1.5, double p = 1000, double c = 678, double a = 2000, double k0 = 0.65, double k1 =1.25)
         {
             int N = 100;
-            double r = 1.5;// R(0)
             int t_first = 0;
             int t_end = 1;
-            double p = 1000;//ціна за якою продаємо
-            double c = 678;//собівартість (за елекроенергію, ...)
-            double a = 2000; //виділяємо грошей на рекламу 
-            double k0 = 0.65;//k(t) - коефіцієнт "набридання" реклами
-            double k1 = 1.25;
 
             Vector<double> variables = Vector<double>.Build.Dense(new[] { 0, r });
             Func<double, Vector<double>, Vector<double>> der = DerivativeMaker(p, c, a, k0);
