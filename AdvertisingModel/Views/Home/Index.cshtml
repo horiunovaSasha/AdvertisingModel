@@ -1,59 +1,57 @@
 ﻿@{
     ViewData["Title"] = "Home Page";
+    bool isNotAdmin = !this.User.IsInRole("admin");
 }
 
 <!-- Animated -->
 <div class="animated fadeIn">
-    <button type="button" class="btn btn-info mb-1" data-toggle="modal" data-target="#mediumModal">
-        Змінити функцію q(t)
-    </button>
-    <button type="button" class="btn btn-info mb-1 float-right" id="changeParams">
-       Застосувати нові параметри
-    </button>
-    <br/>
+    @if (!isNotAdmin)
+    {
+        <span><b>Функція q(t): </b><input type="text" id="func_text" value="@ViewBag.User.Func" /></span>
+        <br />
+    }
+    else
+    {
+        <span>Функція q(t) <b>@ViewBag.User.Func</b></span>
+    }
+    <br />
     <div class="row">
         <span class="col-2">
             <b>r</b>
-            <input type="text" value="1.5" id="r_input">
+            <input disabled="@isNotAdmin" type="text" value="@ViewBag.User.R" id="r_input">
         </span>
         <span class="col-2">
             <b>p</b>
-            <input type="text" value="1000" id="p_input">
+            <input type="text" disabled="@isNotAdmin" value="@ViewBag.User.P" id="p_input">
         </span>
         <span class="col-2">
             <b>c</b>
-            <input type="text" value="678" id="c_input">
+            <input type="text" disabled="@isNotAdmin" value="@ViewBag.User.C" id="c_input">
         </span>
         <span class="col-2">
             <b>a</b>
-            <input type="text" value="2000" id="a_input">
+            <input type="text" disabled="@isNotAdmin" value="@ViewBag.User.C" id="a_input">
         </span>
         <span class="col-2">
             <b>k0</b>
-            <input type="text" value="0.65" id="k0_input">
+            <input type="text" value="@ViewBag.User.K0" disabled="@isNotAdmin" id="k0_input">
         </span>
         <span class="col-2">
             <b>k1</b>
-            <input type="text" value="1.25" id="k1_input">
+            <input type="text" value="@ViewBag.User.K1" disabled="@isNotAdmin" id="k1_input">
         </span>
     </div>
-    <br />
-    <div class="modal fade" id="mediumModal" tabindex="-1" role="dialog" aria-labelledby="mediumModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="mediumModalLabel">Змінити функцію q(t)</h5>
-                    <br />
-                    <input class="col-12" type="text" value="-2*x + 4x^2/3 - 7" id="funcionInput">
-                </div>
-
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Скасувати</button>
-                    <button type="button" id="submitFunctionChange" class="btn btn-primary">Застосувати зміни</button>
-                </div>
+    @if (!isNotAdmin)
+    {
+        <div class="row">
+            <div class="col-12" style="margin-top: 20px; padding-right: 87px;">
+                <button type="button" class="btn btn-info mb-1 float-right" id="changeParams">
+                    Застосувати
+                </button>
             </div>
         </div>
-    </div>
+    }
+    <br />
     <div class="row">
         <div class="col-12 widget">
             <div class="card">
@@ -85,22 +83,52 @@
                 var chart = am4core.create("chartdiv", am4charts.XYChart);
 
                 $.ajax({
+                    @if (isNotAdmin) {
+                        <text>
+                    url: "/api/Calculations/GetCalculate",
+                        </text>
+                    } else
+                    {
+                        <text>
                     url: "/api/Calculations/Calculate",
-                    data: {
+                    data:
+                    {
+                        userId: "@ViewBag.UserId",
                         r: $("#r_input").val(),
                         p: $("#p_input").val(),
                         c: $("#c_input").val(),
                         a: $("#a_input").val(),
                         k0: $("#k0_input").val(),
                         k1: $("#k1_input").val(),
+                        func: $("#func_text").val()
+                    }
+                    </text>
                     }
                 })
                 .done(function (response) {
                     var data = [];
+                    var scale = 1;
+                    var max1 = 0;
+                    var max2 = 0;
+
+                    $(response).each(function (index, elem) {
+                        if (max1 < elem[0])
+                            max1 = elem[0];
+
+                        if (max2 < elem[1])
+                            max2 = elem[1];
+                    });
+
+                    console.log(max1);
+                    console.log(max2);
+
+                    if (max1 > max2)
+                        scale = (1 / (max1 / max2)) * 2;
+
                     $(response).each(function (index, elem) {
                         var item = {
                             "t": index * 0.01,
-                            "y1": elem[0],
+                            "y1": elem[0] * scale,
                             "y2": elem[1],
                         };
 
