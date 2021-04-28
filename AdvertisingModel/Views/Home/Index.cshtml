@@ -119,11 +119,8 @@
                             max2 = elem[1];
                     });
 
-                    console.log(max1);
-                    console.log(max2);
-
                     if (max1 > max2)
-                        scale = (1 / (max1 / max2)) * 2;
+                        scale = (1 / (max1 / max2));
 
                     $(response).each(function (index, elem) {
                         var item = {

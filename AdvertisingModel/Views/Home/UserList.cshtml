@@ -5,9 +5,9 @@
     @foreach (var user in Model)
     {
         <tr>
-            <td>@user.Email</td>
-            <td>
-                <a class="btn btn-sm btn-primary" asp-action="Graph" asp-route-userid="@user.Id">Редагувати</a>
+            <td class="col-8">@user.Email</td>
+            <td class="col-2">
+                <a class="btn btn-sm btn-primary" asp-action="Graph" asp-route-userid="@user.Id">Побудувати модель</a>
             </td>
         </tr>
     }

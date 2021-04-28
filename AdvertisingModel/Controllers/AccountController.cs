@@ -31,7 +31,7 @@ namespace AdvertisingModel.Controllers
                 var user = new CustomUser
                 {
                     UserName = model.Email,
-                    Email = model.Email,
+                    Email = model.Email
                 };
 
                 var result = await _userManager.CreateAsync(user, model.Password);
