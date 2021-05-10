@@ -77,6 +77,105 @@ namespace AdvertisingModel.Controllers
             return CalculateFunc(user.R, user.P, user.C, user.A, user.K0, user.K1);
         }
 
+        private Vector<double>[] CalculateFunc(double r, double p, double c, double a_max, double k0, double k1)
+        {
+            int N = 101;
+            int T = 1;
+            int t_first = 0;
+            int t_end = 1;
+            double k2 = 1.85;
+            double k3 = 2.45;
+
+            Vector<double>[] res = function_RungeKutta(0, r, p, c, a_max, k0, 0, T, N);
+
+            double[] P = new double[N];
+            double[] R = new double[N];
+            int i = 0;
+            Console.WriteLine("[0, T]");
+            foreach (var x in res)
+            {
+                P[i] = x[0];
+                R[i] = x[1];
+                Console.WriteLine("P " + P[i] + "\t R " + R[i]);
+                i++;
+            }
+
+
+            double[] t = function_t(t_first, T, N);
+            //foreach (var x in t)
+            //{
+            //    Console.WriteLine(x);
+            //}
+
+            var R0 = function_R0(p, c, k0, k1);
+            Console.WriteLine($"R0: {R0}");
+
+            var T1 = function_T1(R0, r, k0, a_max);
+            Console.WriteLine($"T1: {T1}");
+
+            var T2 = function_T2(T1, R, k0, k1, a_max, R0, p, c, N, t);
+            Console.WriteLine($"T2: {T2}");
+
+            var a_opt = function_a_opt(T1, R, k0, k1, a_max, R0, p, c, N, t);
+            Console.WriteLine($"a_opt = {a_opt}");
+            Console.WriteLine();
+
+            //[0,T1]
+            res = function_RungeKutta(P[P.Length - 1], R[R.Length - 1], p, c, a_max, k1, 0, T1, N);
+            i = 0;
+
+            Console.WriteLine("[0, T1]");
+            foreach (var x in res)
+            {
+                P[i] = x[0];
+                R[i] = x[1];
+                Console.WriteLine("P1 " + P[i] + "\t R1 " + R[i]);
+                i++;
+            }
+            Console.WriteLine();
+
+            //[T1,T-T2]
+            res = function_RungeKutta(P[P.Length - 1], R[R.Length - 1], p, c, a_max, k2, T1, T - T2, N);
+            i = 0;
+
+            Console.WriteLine("[T1,T-T2]");
+            foreach (var x in res)
+            {
+                P[i] = x[0];
+                R[i] = x[1];
+                Console.WriteLine("P2 " + P[i] + "\t R2 " + R[i]);
+                i++;
+            }
+            Console.WriteLine();
+
+            //[T-T2,T]
+            Console.WriteLine("[T-T2,T]");
+            res = function_RungeKutta(P[P.Length - 1], R[R.Length - 1], p, c, a_max, k3, T - T2, T, N);
+            i = 0;
+
+            foreach (var x in res)
+            {
+                P[i] = x[0];
+                R[i] = x[1];
+                Console.WriteLine("P3 " + P[i] + "\t R3 " + R[i]);
+                i++;
+            }
+
+            return res;
+        }
+
+        static Vector<double>[] function_RungeKutta(double P, double R, double p, double c, double a, double k,
+                                        double t_first, double t_end, int N)
+        {
+            Vector<double> variables = Vector<double>.Build.Dense(new[] { P, R });
+
+            Func<double, Vector<double>, Vector<double>> der = DerivativeMaker(p, c, a, k);
+
+            Vector<double>[] res = RungeKutta.FourthOrder(variables, t_first, t_end, N, der);
+
+            return res;
+        }
+
         //runge kutta
         static Func<double, Vector<double>, Vector<double>> DerivativeMaker(double p, double c, double a, double k0)
         {
@@ -109,42 +208,110 @@ namespace AdvertisingModel.Controllers
         static double function_R0(double p, double c, double k0, double k1)
         {
             var x = CustomExpression.Variable("x");
-            var userFunction = CustomExpression.Parse(_userFunctionText);
+            var func = CustomExpression.Parse(_userFunctionText); //q(x)
+            var derivative = func.Differentiate(x);     //q'(x)
 
-            var derivative = userFunction.Differentiate(x);     //q'(x)
-
-            var equation = derivative - k1 / k0 * 1 / (p - c); //q'(x) - k1/k0*1/(p-c) = 0
+            var equation = derivative - k1 / k0 * 1 / (p - c); // - k1/k0*1/(p-c) + q'(x) = 0
             var R0 = Convert.ToDouble(Regex.Matches((-equation[0] / equation[1]).ToString(), @"(\-)?\d+(\.\d+)?")[0].ToString());//find R from equation and then extract double
 
             return R0;
         }
 
-        private Vector<double>[] CalculateFunc(double r, double p, double c, double a, double k0, double k1)
+
+        static double function_T1(double R0, double r, double k0, double a_max)
         {
-            int N = 101;
-            int t_first = 0;
-            int t_end = 1;
-
-            Vector<double> variables = Vector<double>.Build.Dense(new[] { 0, r });
-            Func<double, Vector<double>, Vector<double>> der = DerivativeMaker(p, c, a, k0);
-
-            Vector<double>[] res = RungeKutta.FourthOrder(variables, t_first, t_end, N, der);
-
-            double[] P = new double[N];
-            double[] R = new double[N];
-            int i = 0;
-
-            foreach (var x in res)
-            {
-                P[i] = x[0];
-                R[i] = x[1];
-                Console.WriteLine("P " + P[i] + "\t R " + R[i]);
-                i++;
-            }
-            double[] t = function_t(t_first, t_end, N);
-
-            var R0 = function_R0(p, c, k0, k1);
-            return res;
+            var T1 = Math.Log(Math.Abs((R0 - k0 * a_max) / (r - k0 * R0))) / k0;
+            return T1;
         }
+
+        static double function_Simpson(double a, double b, double N, double[] R, double p, double c,
+                                        double a_max, int i_first, int i_end)
+        {
+            double S, S1, S2 = 0, S3 = 0, h;
+            int i = 0, j, z = 0;
+
+            double[] Y = new double[R.Length];
+            h = (b - a) / N;
+
+            for (i = i_first + 1; i < i_end; i++)
+            {
+                if (i_first > 0)
+                {
+                    j = i - i_end + i_first;//first integral
+                }
+                else
+                {
+                    j = i - 1;//second integral
+                }
+                Y[z] = (p - c) * (4 * R[j] * R[j] / 3 - 2 * R[j] + 7);//(p - c) * q(R(t))
+                z++;
+            }
+
+            S1 = Y[0] + Y[R.Length - 1];
+
+            for (i = 0; i < R.Length; i++)
+            {
+                if (i % 2 != 0)
+                {
+                    S3 += Y[i];
+                }
+                else
+                {
+                    S2 += Y[i];
+                }
+            }
+
+            S = h / 3 * (S1 + 4 * S2 + 2 * S3); //Simpson
+
+            return S;
+        }
+
+        static double function_T2(double T1, double[] R, double k0, double k1, double a_max,
+                                    double R0, double p, double c, double N, double[] t)
+        {
+            double a, b, S1, S2, T2 = 0;
+            int i_first = 0, i_end = 0;
+
+            for (int i = 1; i < t.Length; i++)
+            {
+                b = t[t.Length - 1];
+                a = b - t[i];
+                i_first = t.Length - 1 - i;
+                i_end = t.Length - 1;
+
+                S1 = function_Simpson(a, b, N, R, p, c, a_max, i_first, i_end);//first integral
+
+                b = t[i];
+                a = 0;
+                i_first = 0;
+                i_end = i;
+
+                S2 = function_Simpson(a, b, N, R, p, c, a_max, i_first, i_end);//second integral
+
+                if (S1 - S2 > 0)
+                {
+                    T2 = (t[i] - t[i - 1]) / 2;
+                    break;
+                }
+            }
+            return T2;
+        }
+
+        static double function_a_opt(double T1, double[] R, double k0, double k1, double a_max,
+                                    double R0, double p, double c, double N, double[] t)
+        {
+            int i_first = 0, i_end = t.Length - 1;
+            double a, b;
+
+            b = t[t.Length - 1];
+            a = 0;
+
+            var S = function_Simpson(a, b, N, R, p, c, a_max, i_first, i_end);
+            var a_opt = S * k1 / k0;
+
+            return a_opt;
+        }
+
+       
     }
 }

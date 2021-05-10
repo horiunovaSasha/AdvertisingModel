@@ -10,6 +10,8 @@ namespace AdvertisingModel.Models
         public double A { get; set; }
         public double K0 { get; set; } 
         public double K1 { get; set; }
+        public double K2 { get; set; }
+        public double K3 { get; set; }
         public string Func { get; set; }
     }
 }
