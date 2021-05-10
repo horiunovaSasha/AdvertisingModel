@@ -15,32 +15,43 @@
         <span>Функція q(t) <b>@ViewBag.User.Func</b></span>
     }
     <br />
-    <div class="row">
-        <span class="col-2">
-            <b>r</b>
-            <input disabled="@isNotAdmin" type="text" value="@ViewBag.User.R" id="r_input">
-        </span>
-        <span class="col-2">
-            <b>p</b>
-            <input type="text" disabled="@isNotAdmin" value="@ViewBag.User.P" id="p_input">
-        </span>
-        <span class="col-2">
-            <b>c</b>
-            <input type="text" disabled="@isNotAdmin" value="@ViewBag.User.C" id="c_input">
-        </span>
-        <span class="col-2">
-            <b>a</b>
-            <input type="text" disabled="@isNotAdmin" value="@ViewBag.User.A" id="a_input">
-        </span>
-        <span class="col-2">
-            <b>k0</b>
-            <input type="text" value="@ViewBag.User.K0" disabled="@isNotAdmin" id="k0_input">
-        </span>
-        <span class="col-2">
-            <b>k1</b>
-            <input type="text" value="@ViewBag.User.K1" disabled="@isNotAdmin" id="k1_input">
-        </span>
+    <div class="container">
+        <div class="row justify-content-between">
+            <span class="col-1">
+                <b>r</b>
+                <input disabled="@isNotAdmin" type="text" value="@ViewBag.User.R" id="r_input">
+            </span>
+            <span class="col-1">
+                <b>p</b>
+                <input type="text" disabled="@isNotAdmin" value="@ViewBag.User.P" id="p_input">
+            </span>
+            <span class="col-1">
+                <b>c</b>
+                <input type="text" disabled="@isNotAdmin" value="@ViewBag.User.C" id="c_input">
+            </span>
+            <span class="col-1">
+                <b>a</b>
+                <input type="text" disabled="@isNotAdmin" value="@ViewBag.User.A" id="a_input">
+            </span>
+            <span class="col-1">
+                <b>k0</b>
+                <input type="text" value="@ViewBag.User.K0" disabled="@isNotAdmin" id="k0_input">
+            </span>
+            <span class="col-1">
+                <b>k1</b>
+                <input type="text" value="@ViewBag.User.K1" disabled="@isNotAdmin" id="k1_input">
+            </span>
+            <span class="col-1">
+                <b>k2</b>
+                <input type="text" value="@ViewBag.User.K2" disabled="@isNotAdmin" id="k2_input">
+            </span>
+            <span class="col-1">
+                <b>k3</b>
+                <input type="text" value="@ViewBag.User.K3" disabled="@isNotAdmin" id="k3_input">
+            </span>
+        </div>
     </div>
+ 
     @if (!isNotAdmin)
     {
         <div class="row">
@@ -100,6 +111,8 @@
                         a: $("#a_input").val(),
                         k0: $("#k0_input").val(),
                         k1: $("#k1_input").val(),
+                        k2: $("#k2_input").val(),
+                        k3: $("#k3_input").val(),
                         func: $("#func_text").val()
                     }
                     </text>
@@ -111,16 +124,18 @@
                     var max1 = 0;
                     var max2 = 0;
 
-                    $(response).each(function (index, elem) {
-                        if (max1 < elem[0])
-                            max1 = elem[0];
+                    console.log(response.zero_T);
 
-                        if (max2 < elem[1])
-                            max2 = elem[1];
-                    });
+                    //$(response).each(function (index, elem) {
+                    //    if (max1 < elem[0])
+                    //        max1 = elem[0];
 
-                    if (max1 > max2)
-                        scale = (1 / (max1 / max2));
+                    //    if (max2 < elem[1])
+                    //        max2 = elem[1];
+                    //});
+
+                    //if (max1 > max2)
+                    //    scale = (1 / (max1 / max2));
 
                     $(response).each(function (index, elem) {
                         var item = {

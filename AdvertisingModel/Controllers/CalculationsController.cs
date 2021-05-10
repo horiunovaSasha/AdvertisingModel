@@ -44,7 +44,7 @@ namespace AdvertisingModel.Controllers
         // q(t) = -2*x + 4x^2/3 - 7;
         [HttpGet()]
         [Route("Calculate")]
-        public async Task<Vector<double>[]> Calculate(string userId, double r = 1.5, double p = 1000, double c = 678, double a = 2000, double k0 = 0.65, double k1 = 1.25, string func = "-2*x + 4*x^2/3 - 7")
+        public async Task<CalculationViewModel> Calculate(string userId, double r = 1.5, double p = 1000, double c = 678, double a = 2000, double k0 = 0.65, double k1 = 1.25, double k2 = 1.85, double k3 = 2.45, string func = "-2*x + 4*x^2/3 - 7")
         {
             var user = await _userManager.FindByIdAsync(userId);
             if (user != null)
@@ -56,6 +56,8 @@ namespace AdvertisingModel.Controllers
                 user.A = a;
                 user.K0 = k0;
                 user.K1 = k1;
+                user.K2 = k2;
+                user.K3 = k3;
                 user.Func = _userFunctionText;
 
 
@@ -63,93 +65,80 @@ namespace AdvertisingModel.Controllers
                 ViewBag.User = user;
             }
 
-            return CalculateFunc(r, p, c, a, k0, k1);
+            return CalculateFunc(r, p, c, a, k0, k1, k2, k3);
         }
 
         [HttpGet()]
         [Route("GetCalculate")]
-        public async Task<Vector<double>[]> GetCalculate()
+        public async Task<CalculationViewModel> GetCalculate()
         {
             var user = await _userManager.FindByNameAsync(User.Identity.Name);
             _userFunctionText = user.Func;
             ViewBag.User = user;
 
-            return CalculateFunc(user.R, user.P, user.C, user.A, user.K0, user.K1);
+            return CalculateFunc(user.R, user.P, user.C, user.A, user.K0, user.K1, user.K2, user.K3);
         }
 
-        private Vector<double>[] CalculateFunc(double r, double p, double c, double a_max, double k0, double k1)
+        private CalculationViewModel CalculateFunc(double r, double p, double c, double a_max, double k0, double k1, double k2, double k3)
         {
-            int N = 101;
+            int N = 10;
             int T = 1;
             int t_first = 0;
-            int t_end = 1;
-            double k2 = 1.85;
-            double k3 = 2.45;
 
+            var result = new CalculationViewModel();
+
+            //[0,T]
             Vector<double>[] res = function_RungeKutta(0, r, p, c, a_max, k0, 0, T, N);
 
             double[] P = new double[N];
             double[] R = new double[N];
             int i = 0;
-            Console.WriteLine("[0, T]");
             foreach (var x in res)
             {
                 P[i] = x[0];
                 R[i] = x[1];
-                Console.WriteLine("P " + P[i] + "\t R " + R[i]);
+
+                result.Zero_T.P[i] = x[0];
+                result.Zero_T.R[i] = x[1];
                 i++;
             }
 
-
             double[] t = function_t(t_first, T, N);
-            //foreach (var x in t)
-            //{
-            //    Console.WriteLine(x);
-            //}
 
             var R0 = function_R0(p, c, k0, k1);
-            Console.WriteLine($"R0: {R0}");
-
             var T1 = function_T1(R0, r, k0, a_max);
-            Console.WriteLine($"T1: {T1}");
-
             var T2 = function_T2(T1, R, k0, k1, a_max, R0, p, c, N, t);
-            Console.WriteLine($"T2: {T2}");
-
             var a_opt = function_a_opt(T1, R, k0, k1, a_max, R0, p, c, N, t);
-            Console.WriteLine($"a_opt = {a_opt}");
-            Console.WriteLine();
 
             //[0,T1]
             res = function_RungeKutta(P[P.Length - 1], R[R.Length - 1], p, c, a_max, k1, 0, T1, N);
             i = 0;
 
-            Console.WriteLine("[0, T1]");
             foreach (var x in res)
             {
                 P[i] = x[0];
                 R[i] = x[1];
-                Console.WriteLine("P1 " + P[i] + "\t R1 " + R[i]);
+
+                result.Zero_T1.P[i] = x[0];
+                result.Zero_T1.R[i] = x[1];
                 i++;
             }
-            Console.WriteLine();
 
             //[T1,T-T2]
             res = function_RungeKutta(P[P.Length - 1], R[R.Length - 1], p, c, a_max, k2, T1, T - T2, N);
             i = 0;
 
-            Console.WriteLine("[T1,T-T2]");
             foreach (var x in res)
             {
                 P[i] = x[0];
                 R[i] = x[1];
-                Console.WriteLine("P2 " + P[i] + "\t R2 " + R[i]);
+
+                result.T1_T2.P[i] = x[0];
+                result.T1_T2.R[i] = x[1];
                 i++;
             }
-            Console.WriteLine();
 
             //[T-T2,T]
-            Console.WriteLine("[T-T2,T]");
             res = function_RungeKutta(P[P.Length - 1], R[R.Length - 1], p, c, a_max, k3, T - T2, T, N);
             i = 0;
 
@@ -157,11 +146,14 @@ namespace AdvertisingModel.Controllers
             {
                 P[i] = x[0];
                 R[i] = x[1];
-                Console.WriteLine("P3 " + P[i] + "\t R3 " + R[i]);
+
+                result.T2_T.P[i] = x[0];
+                result.T2_T.R[i] = x[1];
                 i++;
             }
 
-            return res;
+            //return res;
+            return result;
         }
 
         static Vector<double>[] function_RungeKutta(double P, double R, double p, double c, double a, double k,
