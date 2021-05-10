@@ -44,7 +44,7 @@ namespace AdvertisingModel.Controllers
         // q(t) = -2*x + 4x^2/3 - 7;
         [HttpGet()]
         [Route("Calculate")]
-        public async Task<Vector<double>[]> Calculate(string userId, double r = 1.5, double p = 1000, double c = 678, double a = 2000, double k0 = 0.65, double k1 = 1.25, string func = "-2*x + 4x^2/3 - 7")
+        public async Task<Vector<double>[]> Calculate(string userId, double r = 1.5, double p = 1000, double c = 678, double a = 2000, double k0 = 0.65, double k1 = 1.25, string func = "-2*x + 4*x^2/3 - 7")
         {
             var user = await _userManager.FindByIdAsync(userId);
             if (user != null)

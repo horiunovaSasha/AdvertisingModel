@@ -31,7 +31,14 @@ namespace AdvertisingModel.Controllers
                 var user = new CustomUser
                 {
                     UserName = model.Email,
-                    Email = model.Email
+                    Email = model.Email,
+                    R = 1.5,
+                    P = 1000,
+                    C = 678,
+                    A = 2000,
+                    K0 = 0.65,
+                    K1 = 1.25,
+                    Func = "-2*x + 4*x^2/3 - 7"
                 };
 
                 var result = await _userManager.CreateAsync(user, model.Password);
