@@ -82,82 +82,62 @@ namespace AdvertisingModel.Controllers
         private CalculationViewModel CalculateFunc(double r, double p, double c, double a_max, double k0, double k1, double k2, double k3)
         {
             int N = 10;
-            int T = 1;
             int t_first = 0;
+            int T = 1;
+
+            int i = 0;
+            double[] t = function_t(t_first, T, N);
+            var R0 = function_R0(p, c, k0, k1);
+            var a_opt = function_a_opt(k0, k1, R0);
+            var T1 = function_T1(R0, r, k0, a_max, a_opt);
 
             var result = new CalculationViewModel();
 
-            //[0,T]
-            Vector<double>[] res = function_RungeKutta(0, r, p, c, a_max, k0, 0, T, N);
-
-            double[] P = new double[N];
-            double[] R = new double[N];
-            int i = 0;
-            foreach (var x in res)
-            {
-                P[i] = x[0];
-                R[i] = x[1];
-
-                result.Zero_T.P[i] = x[0];
-                result.Zero_T.R[i] = x[1];
-                i++;
-            }
-
-            double[] t = function_t(t_first, T, N);
-
-            var R0 = function_R0(p, c, k0, k1);
-            var T1 = function_T1(R0, r, k0, a_max);
-            var T2 = function_T2(T1, R, k0, k1, a_max, R0, p, c, N, t);
-            var a_opt = function_a_opt(T1, R, k0, k1, a_max, R0, p, c, N, t);
-
             //[0,T1]
-            res = function_RungeKutta(P[P.Length - 1], R[R.Length - 1], p, c, a_max, k1, 0, T1, N);
+            Vector<double>[] res = function_RungeKutta(0, r, p, c, a_max, k1, 0, T1, N);
             i = 0;
 
             foreach (var x in res)
             {
-                P[i] = x[0];
-                R[i] = x[1];
-
                 result.Zero_T1.P[i] = x[0];
                 result.Zero_T1.R[i] = x[1];
                 i++;
             }
 
+            var T2 = function_T2(T1, result.Zero_T1.R, k0, k1, a_max, R0, p, c, N, t);
+
+            if (T - T2 > T1)
+            {
+                result.IsAlphaMaxValid = true;
+            }
+
             //[T1,T-T2]
-            res = function_RungeKutta(P[P.Length - 1], R[R.Length - 1], p, c, a_max, k2, T1, T - T2, N);
+            res = function_RungeKutta(result.Zero_T1.P[result.Zero_T1.P.Length - 1], R0, p, c, a_max, k2, T1, T - T2, N);
             i = 0;
 
             foreach (var x in res)
             {
-                P[i] = x[0];
-                R[i] = x[1];
-
                 result.T1_T2.P[i] = x[0];
-                result.T1_T2.R[i] = x[1];
+                result.T1_T2.R[i] = R0;
                 i++;
             }
 
             //[T-T2,T]
-            res = function_RungeKutta(P[P.Length - 1], R[R.Length - 1], p, c, a_max, k3, T - T2, T, N);
+            res = function_RungeKutta(result.T1_T2.P[result.T1_T2.P.Length - 1], result.T1_T2.R[result.T1_T2.R.Length - 1], p, c, a_max, k3, T - T2, T, N);
             i = 0;
 
             foreach (var x in res)
             {
-                P[i] = x[0];
-                R[i] = x[1];
-
                 result.T2_T.P[i] = x[0];
                 result.T2_T.R[i] = x[1];
                 i++;
             }
 
-            //return res;
             return result;
         }
 
         static Vector<double>[] function_RungeKutta(double P, double R, double p, double c, double a, double k,
-                                        double t_first, double t_end, int N)
+                                                  double t_first, double t_end, int N)
         {
             Vector<double> variables = Vector<double>.Build.Dense(new[] { P, R });
 
@@ -169,18 +149,21 @@ namespace AdvertisingModel.Controllers
         }
 
         //runge kutta
-        static Func<double, Vector<double>, Vector<double>> DerivativeMaker(double p, double c, double a, double k0)
+        static Func<double, Vector<double>, Vector<double>> DerivativeMaker(double p, double c, double a_max, double k0)
         {
             return (t, Z) =>
             {
                 double[] A = Z.ToArray();
                 double P = A[0];
                 double x = A[1];
-                
                 var userFunction = CustomExpression.Parse(_userFunctionText.Replace("x", x.ToString()));
 
-                return Vector<double>.Build.Dense(new[] { (p - c) * userFunction.ComplexNumberValue.Real - a,
-                                                         k0 * a - k0 * x + 1
+
+                //return Vector<double>.Build.Dense(new[] { (p - c) * (4*Math.Pow(R, 2) / 3 - 2 * R + 7) - a_max,
+                //                                         k0 * a_max - k0 * R + 1
+                //                                        });
+                return Vector<double>.Build.Dense(new[] { (p - c) * userFunction.ComplexNumberValue.Real - a_max,
+                                                         k0 * a_max - k0 * x + 1
                                                         });
             };
         }
@@ -201,18 +184,21 @@ namespace AdvertisingModel.Controllers
         {
             var x = CustomExpression.Variable("x");
             var func = CustomExpression.Parse(_userFunctionText); //q(x)
+            Console.WriteLine("f(x) = " + func.ToString());
+
             var derivative = func.Differentiate(x);     //q'(x)
+            Console.WriteLine("f'(x) = " + derivative.ToString());
 
             var equation = derivative - k1 / k0 * 1 / (p - c); // - k1/k0*1/(p-c) + q'(x) = 0
+            Console.WriteLine($"{equation} = 0");
             var R0 = Convert.ToDouble(Regex.Matches((-equation[0] / equation[1]).ToString(), @"(\-)?\d+(\.\d+)?")[0].ToString());//find R from equation and then extract double
 
             return R0;
         }
 
-
-        static double function_T1(double R0, double r, double k0, double a_max)
+        static double function_T1(double R0, double r, double k0, double a_max, double a_opt)
         {
-            var T1 = Math.Log(Math.Abs((R0 - k0 * a_max) / (r - k0 * R0))) / k0;
+            var T1 = Math.Log(Math.Abs(a_max / (a_max - a_opt))) / k0;
             return T1;
         }
 
@@ -235,7 +221,8 @@ namespace AdvertisingModel.Controllers
                 {
                     j = i - 1;//second integral
                 }
-                Y[z] = (p - c) * (4 * R[j] * R[j] / 3 - 2 * R[j] + 7);//(p - c) * q(R(t))
+
+                Y[z] = (p - c) * (CustomExpression.Parse(_userFunctionText.Replace("x", R[j].ToString()))).RealNumberValue;//(p - c) * q(R(t))
                 z++;
             }
 
@@ -289,21 +276,12 @@ namespace AdvertisingModel.Controllers
             return T2;
         }
 
-        static double function_a_opt(double T1, double[] R, double k0, double k1, double a_max,
-                                    double R0, double p, double c, double N, double[] t)
+        static double function_a_opt(double k0, double k1, double R0)
         {
-            int i_first = 0, i_end = t.Length - 1;
-            double a, b;
 
-            b = t[t.Length - 1];
-            a = 0;
-
-            var S = function_Simpson(a, b, N, R, p, c, a_max, i_first, i_end);
-            var a_opt = S * k1 / k0;
+            var a_opt = R0 * k1 / k0;
 
             return a_opt;
         }
-
-       
     }
 }
