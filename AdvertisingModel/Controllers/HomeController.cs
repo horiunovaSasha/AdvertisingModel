@@ -38,9 +38,43 @@ namespace AdvertisingModel.Controllers
             return View("Index");
         }
 
-        public IActionResult Privacy()
+        [HttpGet]
+        public IActionResult CreateUser()
         {
             return View();
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> CreateUser(RegisterViewModel model)
+        {
+            if (ModelState.IsValid)
+            {
+                var user = new CustomUser
+                {
+                    UserName = model.Email,
+                    Email = model.Email,
+                    R = 1.5,
+                    P = 1000,
+                    C = 678,
+                    A = 2000,
+                    K0 = 0.65,
+                    K1 = 1.25,
+                    K2 = 1.85,
+                    K3 = 2.45,
+                    Func = "-2*x + 4*x^2/3 - 7"
+                };
+
+                var result = await _userManager.CreateAsync(user, model.Password);
+                if (result.Succeeded)
+                {
+                    return RedirectToAction("Index", "Home");
+                }
+                foreach (var error in result.Errors)
+                {
+                    ModelState.AddModelError(string.Empty, error.Description);
+                }
+            }
+            return View(model);
         }
 
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]

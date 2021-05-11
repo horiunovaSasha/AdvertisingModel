@@ -17,26 +17,18 @@
                 @if (!isNotAdmin)
                 {
                 <div class="dropdown">
-                    <form asp-controller="Home" asp-action="Index">
-                        <button class="btn btn-secondary dropdown-toggle" type="submit" style="color:darkgray">Моделі</button>
-                    </form>
+                        <a href="/Home/Index" class="btn btn-secondary dropdown-toggle" style="color:darkgray">Моделі</a>
                 </div>
 
                 <div class="dropdown">
-                    <form asp-controller="Roles" asp-action="Index">
-                        <button class="btn btn-secondary dropdown-toggle" style="color:darkgray">Ролі</button>
-                    </form>
+                    <a href="/Roles/Index" class="btn btn-secondary dropdown-toggle" style="color:darkgray">Ролі</a>
                 </div>
                 <div class="dropdown">
-                    <form>
-                        <button asp-area="Identity" asp-page="/Account/Register" class="btn btn-secondary dropdown-toggle" style="color:darkgray">Створити нового користувача</button>
-                    </form>
+                    <a href="/Home/CreateUser" class="btn btn-secondary dropdown-toggle"  style="color:darkgray">Створити нового користувача</a>
                 </div>
 
                 <div class="dropdown">
-                    <form>
-                        <a href="/account/logout" class="btn btn-secondary dropdown-toggle" style="color:darkgray">Вийти</a>
-                    </form>
+                    <a href="/account/logout" class="btn btn-secondary dropdown-toggle" style="color:darkgray">Вийти</a>
                 </div>
                 }
             </div>

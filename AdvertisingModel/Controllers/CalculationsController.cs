@@ -84,18 +84,17 @@ namespace AdvertisingModel.Controllers
             int N = 10;
             int t_first = 0;
             int T = 1;
-
             int i = 0;
+
+            var result = new CalculationViewModel();
             double[] t = function_t(t_first, T, N);
             var R0 = function_R0(p, c, k0, k1);
             var a_opt = function_a_opt(k0, k1, R0);
             var T1 = function_T1(R0, r, k0, a_max, a_opt);
-
-            var result = new CalculationViewModel();
-
+            result.T1 = T1;
+           
             //[0,T1]
             Vector<double>[] res = function_RungeKutta(0, r, p, c, a_max, k1, 0, T1, N);
-            i = 0;
 
             foreach (var x in res)
             {
@@ -105,6 +104,7 @@ namespace AdvertisingModel.Controllers
             }
 
             var T2 = function_T2(T1, result.Zero_T1.R, k0, k1, a_max, R0, p, c, N, t);
+            result.T2 = T2;
 
             if (T - T2 > T1)
             {
@@ -158,10 +158,6 @@ namespace AdvertisingModel.Controllers
                 double x = A[1];
                 var userFunction = CustomExpression.Parse(_userFunctionText.Replace("x", x.ToString()));
 
-
-                //return Vector<double>.Build.Dense(new[] { (p - c) * (4*Math.Pow(R, 2) / 3 - 2 * R + 7) - a_max,
-                //                                         k0 * a_max - k0 * R + 1
-                //                                        });
                 return Vector<double>.Build.Dense(new[] { (p - c) * userFunction.ComplexNumberValue.Real - a_max,
                                                          k0 * a_max - k0 * x + 1
                                                         });
