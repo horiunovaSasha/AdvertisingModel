@@ -90,6 +90,7 @@ namespace AdvertisingModel.Controllers
             double[] t = function_t(t_first, T, N);
             var R0 = function_R0(p, c, k0, k1);
             var a_opt = function_a_opt(k0, k1, R0);
+            result.Opt = a_opt;
             var T1 = function_T1(R0, r, k0, a_max, a_opt);
             result.T1 = T1;
            

@@ -67,6 +67,9 @@ namespace AdvertisingModel.Controllers
                 var result = await _userManager.CreateAsync(user, model.Password);
                 if (result.Succeeded)
                 {
+                    var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+                    await _userManager.ConfirmEmailAsync(user, token);
+
                     return RedirectToAction("Index", "Home");
                 }
                 foreach (var error in result.Errors)

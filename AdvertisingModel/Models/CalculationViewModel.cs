@@ -8,6 +8,7 @@
         public bool IsAlphaMaxValid { get; set; }
         public double T1 { get; set; }
         public double T2 { get; set; }
+        public double Opt { get; set; }
     }
 
     public class PR_Pair 

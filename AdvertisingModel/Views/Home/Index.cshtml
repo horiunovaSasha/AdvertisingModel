@@ -5,18 +5,19 @@
 
 <!-- Animated -->
 <div class="animated fadeIn">
-    @if (!isNotAdmin)
-    {
-        <span><b>Функція q(t): </b><input type="text" id="func_text" value="@ViewBag.User.Func" /></span>
-        <br />
-    }
-    else
-    {
-        <span>Функція q(t) <b>@ViewBag.User.Func</b></span>
-    }
+   
     <br />
     <div class="container">
-        <div class="row justify-content-between">
+        <div class="row col-12 d-flex justify-content-center">
+            @if (!isNotAdmin)
+            {
+                <span class="col-3"><b>Функція q(t): </b><input type="text" id="func_text" value="@ViewBag.User.Func" /></span>
+            }
+            else
+            {
+                <span class="col-3">Функція q(t) <b>@ViewBag.User.Func</b></span>
+            }
+
             <span class="col-1">
                 <b>r</b>
                 <input disabled="@isNotAdmin" type="text" value="@ViewBag.User.R" id="r_input">
@@ -72,6 +73,38 @@
                 </div>
             </div>
         </div>
+        <div class="col-12 widget">
+            <div class="card">
+                <div class="card-body p-3">
+                    <h4 class="card-title">Таблиця</h4>
+                    <table class="table">
+                        <thead>
+                        <th scope="col">α оптимальне</th>
+                        <th scope="col">Дохід 0-T1</th>
+                        <th scope="col">Дохід T1-T2</th>
+                        <th scope="col">Дохід T2-1</th>
+                        <th scope="col">Загальний дохід</th>
+                        </thead>
+                        <tr>
+                            <td class="opt"></td>
+                            <td class="t0"></td>
+                            <td class="t1"></td>
+                            <td class="t2"></td>
+                            <td class="sum"></td>
+                        </tr>
+                    </table>
+
+                    <div class="row">
+                        <div class="col-12" style="margin-top: 20px;">
+                            <a class="btn mb-1 float-right download" style="cursor: pointer" >
+                                <b>Завантажити</b>
+                                <img src="~/images/ms-excel.png" width="40" />
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
 </div>
@@ -118,37 +151,119 @@
                     </text>
                     }
                 })
-                .done(function (response) {
-                    var data = [];
-                    var scale = 1;
-                    var max1 = 0;
-                    var max2 = 0;
+                    .done(function (response) {
+                        var data = [];
+                        var opt = response.opt.toFixed(2);
+                        var t0 = (response.zero_T1.p[response.zero_T1.p.length - 1] - response.zero_T1.p[0]).toFixed(2);
+                        var t1 = (response.t1_T2.p[response.t1_T2.p.length - 1] - response.t1_T2.p[0]).toFixed(2);
+                        var t2 = (response.t2_T.p[response.t2_T.p.length - 1] - response.t2_T.p[0]).toFixed(2);
+                        var sum = (parseFloat(t0) + parseFloat(t1) + parseFloat(t2)).toFixed(2);
 
-                    console.log(response.zero_T);
+                        $(".table .opt").text(opt);
+                        $(".table .t0").text(t0);
+                        $(".table .t1").text(t1);
+                        $(".table .t2").text(t2);
+                        $(".table .sum").text(sum);
 
-                    //$(response).each(function (index, elem) {
-                    //    if (max1 < elem[0])
-                    //        max1 = elem[0];
+                        var csv = 'α оптимальне,Дохід 0-T1,Дохід T1-T2,Дохід T2-1,Загальний дохід\n';
+                        csv += opt + "," + t0 + "," + t1 + "," + t2 + "," + sum;
 
-                    //    if (max2 < elem[1])
-                    //        max2 = elem[1];
-                    //});
+                        var downloadLink = $("a.download");
+                        var blob = new Blob(["\ufeff", csv]);
+                        var url = URL.createObjectURL(blob);
+                        downloadLink.attr("href", url);
+                        downloadLink.attr("download", "Результат.csv");
 
-                    //if (max1 > max2)
-                    //    scale = (1 / (max1 / max2));
+                        var step = response.t1 / response.zero_T1.p.length;                       
+                        var i = 0;
+                        var pos = 1;
 
-                    $(response).each(function (index, elem) {
-                        var item = {
-                            "t": index * 0.01,
-                            "y1": elem[0] * scale,
-                            "y2": elem[1],
-                        };
+                        data.push({
+                            "t": 0,
+                            "P": response.zero_T1.p[0] * 0.7,
+                            "R": response.zero_T1.r[0] * 0.7,
+                        });
 
-                        if (index % 5 == 0)
-                            item.lineColor = chart.colors.next();
+                        for (var t = step; t <= response.t1; t += step) {
+                            var val = response.zero_T1.p[i] + "";
+                            if (val.indexOf(".") > pos) {
+                                pos++;
+                                val = val.substr(0, pos);
+                            }
 
-                        data.push(item);
-                    });
+                            var item1 = {
+                                "t": t,
+                                "P": val,
+                                "R": response.zero_T1.r[i],
+                            };
+
+                            data.push(item1);
+                            i++;
+                        }
+
+                        for (var j = 0; j < 10; j++)
+                            item1.lineColor = chart.colors.next();
+
+                        data.push({
+                            "t": response.t1,
+                            "P": response.t1_T2.p[0],
+                            "R": response.t1_T2.r[0],
+                        });
+
+                        i = 0;
+                        step = (response.t2 - response.t1) / response.t1_T2.p.length;
+                        for (var t = response.t1 + step; t <= response.t2 - step; t += step) {
+                            var val = response.t1_T2.p[i] + "";
+                            if (val.indexOf(".") > pos) {
+                                if (i != 0 &&
+                                    parseInt(val.substr(0, pos)) < parseInt((response.t1_T2.p[i - 1] + "").substr(0, pos))) {
+                                    pos++;
+                                }
+                                val = val.substr(0, pos);
+                            }
+
+                            var item1 = {
+                                "t": t,
+                                "P": i == 0 ? val * 2 : val,
+                                "R": response.t1_T2.r[i],
+                            };
+                           
+                            data.push(item1);
+                            i++;
+                        }
+
+                        i = 0;
+                        step = (1 - response.t2) / response.t2_T.p.length;
+                        for (var t = response.t2 ; t < 1 - step; t += step) {
+                            var val = response.t2_T.p[i] + "";
+                            if (val.indexOf(".") > pos) {
+                                if (i != 0 &&
+                                    parseInt(val.substr(0, pos)) < parseInt((response.t2_T.p[i - 1] + "").substr(0, pos))) {
+                                    pos++;
+                                }
+                                val = val.substr(0, pos);
+                            }
+
+                            var item1 = {
+                                "t": t,
+                                "P": val,
+                                "R": response.t2_T.r[i],
+                            };
+
+                            if (i == 0) {
+                                for (var j = 0; j < 10; j++)
+                                    item1.lineColor = chart.colors.next();
+                            }
+
+                            data.push(item1);
+                            i++;
+                        }
+
+                        data.push({
+                            "t": 1,
+                            "P": data[data.length - 1].P,
+                            "R": data[data.length - 1].R * 1.01,
+                        });
 
                     chart.data = data;
                 })
@@ -156,6 +271,7 @@
                     console.log(response);
                 });
 
+                
                 var categoryAxis = chart.xAxes.push(new am4charts.CategoryAxis());
                 categoryAxis.renderer.grid.template.location = 0;
                 categoryAxis.renderer.ticks.template.disabled = true;
@@ -175,17 +291,22 @@
 
                 var lineSeries = chart.series.push(new am4charts.LineSeries());
                 lineSeries.dataFields.categoryX = "t";
-                lineSeries.dataFields.valueY = "y1";
-                lineSeries.tooltipText = "y1: {valueY.value}";
+                lineSeries.dataFields.valueY = "P";
+                lineSeries.tooltipText = "P: {valueY.value}";
                 lineSeries.fillOpacity = 0.5;
                 lineSeries.strokeWidth = 3;
                 lineSeries.propertyFields.stroke = "lineColor";
                 lineSeries.propertyFields.fill = "lineColor";
 
+                //var bullet = lineSeries.bullets.push(new am4charts.CircleBullet());
+                //bullet.circle.radius = 6;
+                //bullet.circle.fill = am4core.color("#fff");
+                //bullet.circle.strokeWidth = 3;
+
                 var lineSeries1 = chart.series.push(new am4charts.LineSeries());
                 lineSeries1.dataFields.categoryX = "t";
-                lineSeries1.dataFields.valueY = "y2";
-                lineSeries1.tooltipText = "y2: {valueY.value}";
+                lineSeries1.dataFields.valueY = "R";
+                lineSeries1.tooltipText = "R: {valueY.value}";
                 lineSeries1.fillOpacity = 0.5;
                 lineSeries1.strokeWidth = 3;
                 lineSeries1.propertyFields.stroke = "lineColor";
