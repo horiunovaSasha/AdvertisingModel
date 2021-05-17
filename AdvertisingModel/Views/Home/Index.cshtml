@@ -50,6 +50,10 @@
                 <b>k3</b>
                 <input type="text" value="@ViewBag.User.K3" disabled="@isNotAdmin" id="k3_input">
             </span>
+            <span class="col-1">
+                <b>T</b>
+                <input type="text" value="100" disabled="@isNotAdmin" id="T">
+            </span>
         </div>
     </div>
  
@@ -76,17 +80,25 @@
         <div class="col-12 widget">
             <div class="card">
                 <div class="card-body p-3">
-                    <h4 class="card-title">Таблиця</h4>
+                    <h4 class="card-title">Результати</h4>
                     <table class="table">
                         <thead>
                         <th scope="col">α оптимальне</th>
+                        <th scope="col">T1</th>
+                        <th scope="col">T2</th>
+                        @*<th scope="col">T1%</th>
+                        <th scope="col">T2%</th>*@
                         <th scope="col">Дохід 0-T1</th>
-                        <th scope="col">Дохід T1-T2</th>
-                        <th scope="col">Дохід T2-1</th>
+                        <th scope="col">Дохід T1,T-T2</th>
+                        <th scope="col">Дохід T-T2,T</th>
                         <th scope="col">Загальний дохід</th>
                         </thead>
                         <tr>
                             <td class="opt"></td>
+                            <td class="t1_val"></td>
+                            <td class="t2_val"></td>
+                            @*<td class="t1_proc"></td>
+                            <td class="t2_proc"></td>*@
                             <td class="t0"></td>
                             <td class="t1"></td>
                             <td class="t2"></td>
@@ -159,14 +171,31 @@
                         var t2 = (response.t2_T.p[response.t2_T.p.length - 1] - response.t2_T.p[0]).toFixed(2);
                         var sum = (parseFloat(t0) + parseFloat(t1) + parseFloat(t2)).toFixed(2);
 
+                        var days = parseInt($("#T").val());
+                        var t1_days = response.t1 * days;
+                        var t2_days = response.t2 * days;
+
+                        var t1_val = t1_days < 1 ? parseFloat((t1_days).toFixed(2)) : Math.round(t1_days); 
+                        var t2_val = t2_days < 1 ? parseFloat((t2_days).toFixed(2)) : Math.round(t2_days);
+                        var t_val = days - t2_val;
+                        var t1_proc = (response.t1).toFixed(4);
+                        var t2_proc = (response.t2);
+
                         $(".table .opt").text(opt);
+
+                        $(".table .t1_val").text(t1_val);
+                        $(".table .t2_val").text(t2_val);
+                        $(".table .t1_proc").text(t1_proc);
+                        $(".table .t2_proc").text(t2_proc);
+
                         $(".table .t0").text(t0);
                         $(".table .t1").text(t1);
                         $(".table .t2").text(t2);
                         $(".table .sum").text(sum);
+                       
 
-                        var csv = 'α оптимальне,Дохід 0-T1,Дохід T1-T2,Дохід T2-1,Загальний дохід\n';
-                        csv += opt + "," + t0 + "," + t1 + "," + t2 + "," + sum;
+                        var csv = 'α оптимальне,T1,T2,Дохід 0-T1,Дохід T1-T2,Дохід T2-1,Загальний дохід\n';
+                        csv += opt + "," +t1_val + "," + t2_val + "," + t0 + "," + t1 + "," + t2 + "," + sum;
 
                         var downloadLink = $("a.download");
                         var blob = new Blob(["\ufeff", csv]);
@@ -174,22 +203,23 @@
                         downloadLink.attr("href", url);
                         downloadLink.attr("download", "Результат.csv");
 
-                        var step = response.t1 / response.zero_T1.p.length;                       
+                        var step = t1_val / response.zero_T1.p.length;    
                         var i = 0;
                         var pos = 1;
 
                         data.push({
                             "t": 0,
-                            "P": response.zero_T1.p[0] * 0.7,
-                            "R": response.zero_T1.r[0] * 0.7,
+                            "P": 0,
+                            "R": 0,
                         });
 
-                        for (var t = step; t <= response.t1; t += step) {
-                            var val = response.zero_T1.p[i] + "";
-                            if (val.indexOf(".") > pos) {
-                                pos++;
-                                val = val.substr(0, pos);
-                            }
+                        for (var t = step; t < t1_val - step; t += step) {
+                            //var val = response.zero_T1.p[i] + "";
+                            //if (val.indexOf(".") > pos) {
+                            //    pos++;
+                            //    val = val.substr(0, pos);
+                            //}
+                            var val = response.zero_T1.p[i];
 
                             var item1 = {
                                 "t": t,
@@ -201,30 +231,28 @@
                             i++;
                         }
 
-                        for (var j = 0; j < 10; j++)
-                            item1.lineColor = chart.colors.next();
-
-                        data.push({
-                            "t": response.t1,
-                            "P": response.t1_T2.p[0],
-                            "R": response.t1_T2.r[0],
-                        });
+                        
 
                         i = 0;
-                        step = (response.t2 - response.t1) / response.t1_T2.p.length;
-                        for (var t = response.t1 + step; t <= response.t2 - step; t += step) {
-                            var val = response.t1_T2.p[i] + "";
-                            if (val.indexOf(".") > pos) {
-                                if (i != 0 &&
-                                    parseInt(val.substr(0, pos)) < parseInt((response.t1_T2.p[i - 1] + "").substr(0, pos))) {
-                                    pos++;
-                                }
-                                val = val.substr(0, pos);
+                        step = t2_val / response.t1_T2.p.length;
+                        for (var t = t1_val; t < t2_val; t += step) {
+                            if (i == 1) {
+                                for (var j = 0; j < 10; j++)
+                                    item1.lineColor = chart.colors.next();
                             }
+                            //var val = response.t1_T2.p[i] + "";
+                            //if (val.indexOf(".") > pos) {
+                            //    if (i != 0 &&
+                            //        parseInt(val.substr(0, pos)) < parseInt((response.t1_T2.p[i - 1] + "").substr(0, pos))) {
+                            //        pos++;
+                            //    }
+                            //    val = val.substr(0, pos);
+                            //}
+                            var val = response.t1_T2.p[i];
 
                             var item1 = {
                                 "t": t,
-                                "P": i == 0 ? val * 2 : val,
+                                "P": val,
                                 "R": response.t1_T2.r[i],
                             };
                            
@@ -233,37 +261,43 @@
                         }
 
                         i = 0;
-                        step = (1 - response.t2) / response.t2_T.p.length;
-                        for (var t = response.t2 ; t < 1 - step; t += step) {
-                            var val = response.t2_T.p[i] + "";
-                            if (val.indexOf(".") > pos) {
-                                if (i != 0 &&
-                                    parseInt(val.substr(0, pos)) < parseInt((response.t2_T.p[i - 1] + "").substr(0, pos))) {
-                                    pos++;
+                        
+                        step = t_val / response.t2_T.p.length;
+                        for (var t = t2_val; t < days; t += step) {
+                            var val = response.t2_T.p[i];
+                            if (val != undefined) {
+                                //var val = response.t2_T.p[i] + "";
+                                //if (val.indexOf(".") > pos) {
+                                //    if (i != 0 &&
+                                //        parseInt(val.substr(0, pos)) < parseInt((response.t2_T.p[i - 1] + "").substr(0, pos))) {
+                                //        pos++;
+                                //    }
+                                //    val = val.substr(0, pos);
+                                //}
+
+                                var item1 = {
+                                    "t": t,
+                                    "P": val,
+                                    "R": response.t2_T.r[i],
+                                };
+
+                                if (i == 0) {
+                                    for (var j = 0; j < 10; j++)
+                                        item1.lineColor = chart.colors.next();
                                 }
-                                val = val.substr(0, pos);
+
+                                data.push(item1);
+                                i++;
                             }
-
-                            var item1 = {
-                                "t": t,
-                                "P": val,
-                                "R": response.t2_T.r[i],
-                            };
-
-                            if (i == 0) {
-                                for (var j = 0; j < 10; j++)
-                                    item1.lineColor = chart.colors.next();
-                            }
-
-                            data.push(item1);
-                            i++;
                         }
 
-                        data.push({
-                            "t": 1,
-                            "P": data[data.length - 1].P,
-                            "R": data[data.length - 1].R * 1.01,
-                        });
+                        if (data[data.length - 1].P != undefined) {
+                            data.push({
+                                "t": days,
+                                "P": data[data.length - 1].P,
+                                "R": data[data.length - 1].R * 1.05,
+                            });
+                        }
 
                     chart.data = data;
                 })

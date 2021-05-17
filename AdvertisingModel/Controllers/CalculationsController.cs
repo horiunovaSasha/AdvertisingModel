@@ -89,7 +89,7 @@ namespace AdvertisingModel.Controllers
             var result = new CalculationViewModel();
             double[] t = function_t(t_first, T, N);
             var R0 = function_R0(p, c, k0, k1);
-            var a_opt = function_a_opt(k0, k1, R0);
+            var a_opt = function_a_opt(k0, k2, R0);
             result.Opt = a_opt;
             var T1 = function_T1(R0, r, k0, a_max, a_opt);
             result.T1 = T1;
@@ -181,13 +181,8 @@ namespace AdvertisingModel.Controllers
         {
             var x = CustomExpression.Variable("x");
             var func = CustomExpression.Parse(_userFunctionText); //q(x)
-            Console.WriteLine("f(x) = " + func.ToString());
-
             var derivative = func.Differentiate(x);     //q'(x)
-            Console.WriteLine("f'(x) = " + derivative.ToString());
-
             var equation = derivative - k1 / k0 * 1 / (p - c); // - k1/k0*1/(p-c) + q'(x) = 0
-            Console.WriteLine($"{equation} = 0");
             var R0 = Convert.ToDouble(Regex.Matches((-equation[0] / equation[1]).ToString(), @"(\-)?\d+(\.\d+)?")[0].ToString());//find R from equation and then extract double
 
             return R0;
@@ -273,10 +268,10 @@ namespace AdvertisingModel.Controllers
             return T2;
         }
 
-        static double function_a_opt(double k0, double k1, double R0)
+        static double function_a_opt(double k0, double k2, double R0)
         {
 
-            var a_opt = R0 * k1 / k0;
+            var a_opt = R0 * k2 / k0;
 
             return a_opt;
         }
